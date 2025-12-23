@@ -7,6 +7,7 @@ class Terminal {
         this.canInput = false;
         this.history = [];
         this.historyIndex = -1;
+        this.isInterrupted = false;
 
         this.commands = {
             "ls": this.ls.bind(this),
@@ -14,6 +15,8 @@ class Terminal {
             "cat": this.cat.bind(this),
             "help": this.help.bind(this),
             "clear": this.clear.bind(this),
+            "pwd": this.pwd.bind(this),
+            "yes": this.yes.bind(this),
         };
 
         this.init();
@@ -81,6 +84,15 @@ class Terminal {
     }
 
     async handleKeyDown(e) {
+        if (e.ctrlKey && e.key === 'c') {
+            e.preventDefault();
+            if (!this.canInput) {
+                this.isInterrupted = true;
+                this.writeLine('^C');
+            }
+            return;
+        }
+
         if (!this.canInput) return;
         
         switch (e.key) {
@@ -129,6 +141,7 @@ class Terminal {
 
     async executeCommand(commandText) {
         const [command, ...args] = commandText.trim().split(" ");
+        this.isInterrupted = false;
 
         if (command in this.commands) {
             await this.commands[command](args);
@@ -202,16 +215,38 @@ class Terminal {
         escapedContent.split('\n').forEach(line => this.writeLine(line));
     }
 
+    async pwd() {
+        this.writeLine(this.currentDir);
+    }
+
+    async yes(args) {
+        const text = args.join(' ') || 'y';
+        return new Promise(resolve => {
+            const printYes = () => {
+                if (this.isInterrupted) {
+                    resolve();
+                    return;
+                }
+                this.writeLine(text);
+                window.scrollTo(0, document.body.scrollHeight);
+                setTimeout(printYes, 10);
+            };
+            printYes();
+        });
+    }
+
     async help() {
         const helpLines = [
             "ecrd-fake-terminal, version 25.12-release",
-            "These shell commands are defined internally.  Type `help' to see this list.",
+            "These shell commands are defined internally. Type `help' to see this list.",
             "",
-            " ls [path]   - List files",
-            " cd [path]   - Change directory",
-            " cat [file]  - Display contents of a file",
-            " help        - Show this help message",
-            " clear       - Clear the terminal",
+            " ls [path]      - List files",
+            " cd [path]      - Change directory",
+            " cat [file]     - Display contents of a file",
+            " pwd            - Print working directory",
+            " yes [string]   - Output a string repeatedly",
+            " help           - Show this help message",
+            " clear          - Clear the terminal",
         ];
         helpLines.forEach(line => this.writeLine(line));
     }
