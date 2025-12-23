@@ -23,7 +23,11 @@ class Terminal {
     }
 
     init() {
-        this.cli.addEventListener('click', () => this.hiddenInput.focus());
+        this.cli.addEventListener('click', () => {
+            if (window.getSelection().toString() === "") {
+                this.hiddenInput.focus();
+            }
+        });
         this.hiddenInput.addEventListener('input', this.handleInput.bind(this));
         this.hiddenInput.addEventListener('keydown', this.handleKeyDown.bind(this));
         this.playInitAnimation();
