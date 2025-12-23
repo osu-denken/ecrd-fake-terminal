@@ -39,6 +39,7 @@ class Terminal {
             ];
 
             for (const command of initialCommands) {
+                this.history.push(command);
                 await this.type(command, 80);
                 this.currentLine.classList.remove("cursor");
                 await this.executeCommand(command);
@@ -46,6 +47,7 @@ class Terminal {
                     this.createNewLine();
                 }
             }
+            this.historyIndex = this.history.length;
             this.createNewLine();
         } finally {
             this.canInput = true;
@@ -87,8 +89,10 @@ class Terminal {
                 this.canInput = false;
                 try {
                     const text = this.hiddenInput.value;
-                    this.history.push(text);
-                    this.historyIndex = this.history.length;
+                    if(text) {
+                        this.history.push(text);
+                        this.historyIndex = this.history.length;
+                    }
                     this.currentLine.classList.remove("cursor");
                     await this.executeCommand(text);
                     this.createNewLine();
@@ -129,7 +133,7 @@ class Terminal {
         if (command in this.commands) {
             await this.commands[command](args);
         } else if(command !== "") {
-            this.writeLine(`-bash: ${command}: command not found`);
+            this.writeLine(`bash: ${command}: command not found`);
         }
     }
 
@@ -168,7 +172,7 @@ class Terminal {
             .replace(/'/g, "&#039;");
     }
 
-    // Commands
+    // --- Commands ---
     async ls(args) {
         const path = args[0] || this.currentDir;
         if (path === '/var/www/html/' || path === '~/') {
@@ -200,12 +204,14 @@ class Terminal {
 
     async help() {
         const helpLines = [
-            "Available commands:",
-            "  ls [path]   - List files",
-            "  cd [path]   - Change directory",
-            "  cat [file]  - Display contents of a file",
-            "  help        - Show this help message",
-            "  clear       - Clear the terminal",
+            "ecrd-fake-terminal, version 25.12-release",
+            "These shell commands are defined internally.  Type `help' to see this list.",
+            "",
+            " ls [path]   - List files",
+            " cd [path]   - Change directory",
+            " cat [file]  - Display contents of a file",
+            " help        - Show this help message",
+            " clear       - Clear the terminal",
         ];
         helpLines.forEach(line => this.writeLine(line));
     }
