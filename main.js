@@ -37,7 +37,7 @@ class Terminal {
         this.canInput = false;
         try {
             this.createNewLine();
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await new Promise(resolve => setTimeout(resolve, 500)); // 500ms待機
 
             const initialCommands = [
                 "ls /var/www/html/",
@@ -50,7 +50,7 @@ class Terminal {
                 await this.type(command, 80);
                 this.currentLine.classList.remove("cursor");
                 await this.executeCommand(command);
-                await new Promise(resolve => setTimeout(resolve, 250));
+                await new Promise(resolve => setTimeout(resolve, 200)); // 200ms待機
                 if (initialCommands.indexOf(command) < initialCommands.length - 1) {
                     this.createNewLine();
                 }
