@@ -50,6 +50,7 @@ class Terminal {
                 await this.type(command, 80);
                 this.currentLine.classList.remove("cursor");
                 await this.executeCommand(command);
+                await new Promise(resolve => setTimeout(resolve, 250));
                 if (initialCommands.indexOf(command) < initialCommands.length - 1) {
                     this.createNewLine();
                 }
@@ -215,8 +216,8 @@ class Terminal {
             return;
         }
         const content = await this.getFile(path);
-        const escapedContent = this.escapeHtml(content);
-        escapedContent.split('\n').forEach(line => this.writeLine(line));
+        // const escapedContent = this.escapeHtml(content);
+        content.split('\n').forEach(line => this.writeLine(line));
     }
 
     async pwd() {
