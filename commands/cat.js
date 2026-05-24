@@ -2,7 +2,7 @@ export default async (ctx, args) => {
     if (args.length === 0) {
         if (ctx.stdin) {
             ctx.stdin.forEach(line => ctx.writeLine(line));
-            continue;
+            return;
         }
 
         ctx.writeLine("cat: missing operand");
@@ -10,8 +10,11 @@ export default async (ctx, args) => {
     }
     
     for (const path of args) {
-        const content = await ctx.getFile(path);
-        // const escapedContent = ctx.escapeHtml(content);
-        content.split('\n').forEach(line => ctx.writeLine(line));
+        try {
+            const content = await ctx.getFile(path);
+            content.split('\n').forEach(line => ctx.writeLine(line));
+        } catch (err) {
+            ctx.writeLine(`cat: ${path}: ${err.message}`);
+        }
     }
 };

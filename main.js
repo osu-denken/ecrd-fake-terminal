@@ -205,18 +205,18 @@ class Terminal {
     }
     
     async getFile(path) {
+        const url = this.getFetchUrl(path);
+        if (!url) {
+            throw new Error(`Permission denied or No such file or directory`);
+        }
         try {
-            const url = this.getFetchUrl(path);
-            if (!url) {
-                return `cat: ${path}: Permission denied or No such file or directory`;
-            }
             const response = await fetch(url);
             if (!response.ok) {
-                return `cat: ${path}: No such file or directory`;
+                throw new Error(`No such file or directory`);
             }
             return await response.text();
         } catch (error) {
-            return `cat: ${path}: No such file or directory`;
+            throw new Error(`No such file or directory`);
         }
     }
 
