@@ -1,4 +1,4 @@
-export default async function(ctx, args) {
+export default async (ctx, args) => {
     const isRecursive = args.includes("-r") || args.includes("-rf") || args.includes("-fr");
     const isForce = args.includes("-f") || args.includes("-rf") || args.includes("-fr");
 
@@ -63,4 +63,4 @@ export default async function(ctx, args) {
     for (const target of targets) {
         ctx.writeLine(`removed '${target}'`);
     }
-}
+};

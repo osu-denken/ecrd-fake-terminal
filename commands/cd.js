@@ -3,6 +3,12 @@ export default async (ctx, args) => {
     if (!path || path === '~') {
         ctx.currentDir = "~";
     } else {
-        ctx.currentDir = path;
+        const resolved = ctx.resolvePath(path);
+        // "~" はホームディレクトリ相当の特別扱い
+        if (resolved === '/home/denken' || resolved === '/home/denken/') {
+            ctx.currentDir = "~";
+        } else {
+            ctx.currentDir = resolved;
+        }
     }
 }

@@ -7,4 +7,4 @@ export default async (ctx, args) => {
     const content = await ctx.getFile(path);
     // const escapedContent = ctx.escapeHtml(content);
     content.split('\n').forEach(line => ctx.writeLine(line));
-}
+};

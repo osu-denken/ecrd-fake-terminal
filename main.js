@@ -91,6 +91,9 @@ class Terminal {
             if (!this.canInput) {
                 this.isInterrupted = true;
                 this.writeLine('^C');
+                if (this.passwordInterrupt) {
+                    this.passwordInterrupt();
+                }
             }
             return;
         }
@@ -168,7 +171,11 @@ class Terminal {
     
     async getFile(path) {
         try {
-            const response = await fetch(path);
+            const url = this.getFetchUrl(path);
+            if (!url) {
+                return `cat: ${path}: Permission denied or No such file or directory`;
+            }
+            const response = await fetch(url);
             if (!response.ok) {
                 return `cat: ${path}: No such file or directory`;
             }
@@ -176,6 +183,95 @@ class Terminal {
         } catch (error) {
             return `cat: ${path}: No such file or directory`;
         }
+    }
+
+    resolvePath(targetPath) {
+        if (!targetPath) return this.currentDir;
+        
+        let path = targetPath;
+        if (path.startsWith('~')) {
+            path = '/home/denken' + path.substring(1);
+        }
+
+        let basePath = this.currentDir;
+        if (basePath.startsWith('~')) {
+            basePath = '/home/denken' + basePath.substring(1);
+        }
+
+        if (path.startsWith('/')) {
+            basePath = '';
+        }
+
+        const baseParts = basePath.split('/').filter(p => p !== '');
+        const targetParts = path.split('/').filter(p => p !== '');
+
+        for (const part of targetParts) {
+            if (part === '.') continue;
+            if (part === '..') {
+                if (baseParts.length > 0) baseParts.pop();
+            } else {
+                baseParts.push(part);
+            }
+        }
+
+        // 特別なディレクトリとして扱うために、末尾のスラッシュは適宜調整するが、
+        // CDなどしやすいように基本は末尾スラッシュなしまたはありで統一。
+        // ここでは通常通りくっつける。
+        let result = '/' + baseParts.join('/');
+        if (targetPath.endsWith('/') && result !== '/') {
+            result += '/';
+        }
+        return result;
+    }
+
+    getFetchUrl(targetPath) {
+        const absPath = this.resolvePath(targetPath);
+        if (absPath.startsWith('/var/www/html')) {
+            const relPath = absPath.substring('/var/www/html'.length);
+            // Certain files in /var/www/html are actually served from the terminal folder
+            if (relPath === '/welcome.md' || relPath === '/welcome-log.md' || relPath === '/index.html' || relPath === '/style.css' || relPath === '/main.js' || relPath === '/main.html') {
+                return '.' + relPath;
+            }
+            // Other files map to the root directory (../ from /terminal/)
+            return '..' + (relPath === '' ? '/' : relPath);
+        }
+        
+        // Everything else maps to the local root/ folder
+        return './root' + absPath;
+    }
+
+    async readPassword(promptText) {
+        const line = document.createElement("div");
+        line.classList.add("line");
+        line.innerHTML = `<span class="text">${promptText}</span><span class="password-input cursor"></span>`;
+        this.cliElement.appendChild(line);
+        const passSpan = line.querySelector('.password-input');
+        
+        this.hiddenInputElement.value = '';
+        this.canInput = false;
+
+        return new Promise((resolve) => {
+            const finish = (value) => {
+                passSpan.classList.remove('cursor');
+                this.hiddenInputElement.removeEventListener('keydown', keydownHandler);
+                this.hiddenInputElement.value = '';
+                this.canInput = true;
+                this.passwordInterrupt = null;
+                resolve(value);
+            };
+
+            this.passwordInterrupt = () => finish(null);
+
+            const keydownHandler = (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    finish(this.hiddenInputElement.value);
+                }
+            };
+
+            this.hiddenInputElement.addEventListener('keydown', keydownHandler);
+            this.hiddenInputElement.focus();
+        });
     }
 
     escapeHtml(text) {

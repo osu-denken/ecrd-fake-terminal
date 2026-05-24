@@ -1,4 +1,6 @@
-export default async function (ctx, args) {
+import commands from "./index.js";
+
+export default async (ctx, args) => {
     if (args.length === 0) {
         ctx.writeLine("usage: sudo <command>");
         return;
@@ -15,7 +17,7 @@ export default async function (ctx, args) {
     const MAX_TRY = 3;
 
     for (let i = 0; i < MAX_TRY; i++) {
-        const password = await ctx.readPassword("[sudo] password for osu-denken:");
+        const password = await ctx.readPassword("[sudo] password for denken:");
         if (password === null) return;
 
         await ctx.sleep(200);
@@ -39,4 +41,4 @@ export default async function (ctx, args) {
     }
 
     ctx.writeLine("sudo: 3 incorrect password attempts");
-}
+};

@@ -7,4 +7,4 @@ export default async (ctx, args) => {
 
     const message = args.join(" ");
     ctx.writeLine(message);
-}
+};
