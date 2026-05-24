@@ -1,5 +1,3 @@
-import commands from "./index.js";
-
 export default async function (ctx, args) {
     if (args.length === 0) {
         ctx.writeLine("usage: sudo <command>");
@@ -7,26 +5,38 @@ export default async function (ctx, args) {
     }
 
     const [cmd, ...cmdArgs] = args;
-
-    const target = commands[cmd];
+    const target = ctx.commands?.[cmd] ?? commands[cmd];
 
     if (!target) {
         ctx.writeLine(`sudo: ${cmd}: command not found`);
         return;
     }
 
-    ctx.writeLine("[sudo] password for guest:");
-    await new Promise(r => setTimeout(r, 800));
+    const MAX_TRY = 3;
 
-    ctx.writeLine("********");
-    await new Promise(r => setTimeout(r, 300));
+    for (let i = 0; i < MAX_TRY; i++) {
+        const password = await ctx.readPassword("[sudo] password for osu-denken:");
+        if (password === null) return;
 
-    const prev = ctx.isRoot;
-    ctx.isRoot = true;
+        await ctx.sleep(200);
 
-    try {
-        await target(ctx, cmdArgs);
-    } finally {
-        ctx.isRoot = prev;
+        if (password === "javaworld") {
+            const prev = ctx.isRoot;
+            ctx.isRoot = true;
+
+            try {
+                await target(ctx, cmdArgs);
+            } finally {
+                ctx.isRoot = prev;
+            }
+
+            return;
+        }
+
+        if (i < MAX_TRY - 1) {
+            ctx.writeLine("Sorry, try again.");
+        }
     }
+
+    ctx.writeLine("sudo: 3 incorrect password attempts");
 }
