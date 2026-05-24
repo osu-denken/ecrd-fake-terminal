@@ -50,7 +50,7 @@ export default async (ctx, args) => {
         ctx.writeLine("VFS: Unable to mount root fs on unknown-block(0,0)");
         ctx.writeLine("");
         ctx.writeLine("System halted.");
-        ctx.writeLine(`<a href='https://twitter.com/intent/tweet?text=${title}&url=${encodeURIComponent(window.location.href)}&hashtags=OSU電研' target='_blank'>Xで共有する</a>`);
+        ctx.writeLine(`<a href='https://twitter.com/intent/tweet?text=${title}&url=${encodeURIComponent("https://osu-denken.github.io")}&&hashtags=OSU電研' target='_blank'>Xで共有する</a>`);
 
         return;
     }
