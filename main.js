@@ -145,17 +145,44 @@ class Terminal {
     }
 
     async executeCommand(commandText) {
-        const [command, ...args] = commandText.trim().split(" ");
         this.isInterrupted = false;
+        
+        const segments = commandText.split('|').map(s => s.trim()).filter(s => s);
+        if (segments.length === 0) return;
 
-        if (command in commands) {
-            await commands[command](this, args);
-        } else if(command !== "") {
-            this.writeLine(`-fash: ${command}: command not found`);
+        let previousOutput = null;
+
+        for (let i = 0; i < segments.length; i++) {
+            if (this.isInterrupted) break;
+
+            const [command, ...args] = segments[i].split(/\s+/);
+            const isLast = (i === segments.length - 1);
+
+            this.captureOutput = !isLast;
+            this.capturedOutput = [];
+            this.stdin = previousOutput;
+
+            if (command in commands) {
+                await commands[command](this, args);
+            } else if (command !== "") {
+                this.writeLine(`-fash: ${command}: command not found`);
+            }
+
+            if (!isLast) {
+                previousOutput = [...this.capturedOutput];
+            }
         }
+
+        this.captureOutput = false;
+        this.capturedOutput = [];
+        this.stdin = null;
     }
 
     writeLine(text) {
+        if (this.captureOutput) {
+            this.capturedOutput.push(text);
+            return;
+        }
         const line = document.createElement("div");
         line.classList.add("line");
         line.innerHTML = `<span class="text">${text}</span>`;
@@ -163,6 +190,14 @@ class Terminal {
     }
 
     writeHtml(html) {
+        if (this.captureOutput) {
+            const temp = document.createElement("div");
+            temp.innerHTML = html;
+            // When capturing HTML (like from ls), convert it to items delimited by tabs/newlines
+            const items = Array.from(temp.childNodes).map(node => node.textContent).filter(t => t.trim() !== '');
+            this.capturedOutput.push(...items);
+            return;
+        }
         const line = document.createElement("div");
         line.classList.add("line");
         line.innerHTML = `<span class="text">${html}</span>`;
