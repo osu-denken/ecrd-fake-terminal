@@ -18,11 +18,14 @@ class Terminal {
         this.cliElement.addEventListener('click', () => {
             if (window.getSelection().toString() === "") {
                 this.hiddenInputElement.focus();
+                setTimeout(() => this.updateInputDisplay(), 0);
             }
         });
         
         this.hiddenInputElement.addEventListener('input', this.handleInput.bind(this));
         this.hiddenInputElement.addEventListener('keydown', this.handleKeyDown.bind(this));
+        this.hiddenInputElement.addEventListener('keyup', () => this.updateInputDisplay());
+        this.hiddenInputElement.addEventListener('click', () => this.updateInputDisplay());
         this.playInitAnimation();
     }
 
@@ -40,8 +43,10 @@ class Terminal {
 
             for (const command of initialCommands) {
                 this.history.push(command);
+                this.hiddenInputElement.value = "";
                 await this.type(command, 80);
-                this.currentLine.classList.remove("cursor");
+                const oldCursor = this.currentLine.querySelector(".cursor");
+                if (oldCursor) oldCursor.classList.remove("cursor");
                 await this.executeCommand(command);
                 await this.sleep(200); // 200ms待機
                 if (initialCommands.indexOf(command) < initialCommands.length - 1) {
@@ -59,19 +64,42 @@ class Terminal {
     createNewLine() {
         if (this.currentLine) {
             this.currentLine.classList.remove("cursor");
+            const oldCursor = this.currentLine.querySelector(".cursor");
+            if (oldCursor) oldCursor.classList.remove("cursor");
         }
         const line = document.createElement("div");
         line.classList.add("line");
-        line.innerHTML = `<span class="user">denken@osu<span class="sp">:</span>${this.currentDir}</span><span class="prefix">$&nbsp;</span><span class="text cursor"></span>`;
+        line.innerHTML = `<span class="user">denken@osu<span class="sp">:</span>${this.currentDir}</span><span class="prefix">$&nbsp;</span><span class="text"></span>`;
         this.cliElement.appendChild(line);
         this.currentLine = line.querySelector(".text");
         this.hiddenInputElement.value = '';
+        this.updateInputDisplay();
         window.scrollTo(0, document.body.scrollHeight);
     }
     
+    updateInputDisplay() {
+        if (!this.currentLine) return;
+        const text = this.hiddenInputElement.value;
+        const pos = typeof this.hiddenInputElement.selectionStart === 'number' ? this.hiddenInputElement.selectionStart : text.length;
+
+        const before = text.slice(0, pos);
+        const after = text.slice(pos);
+
+        this.currentLine.innerHTML = '';
+        const beforeSpan = document.createElement("span");
+        beforeSpan.className = "cursor";
+        beforeSpan.textContent = before;
+        const afterSpan = document.createElement("span");
+        afterSpan.textContent = after;
+        
+        this.currentLine.appendChild(beforeSpan);
+        this.currentLine.appendChild(afterSpan);
+    }
+
     async type(text, speed) {
         for (let i = 0; i < text.length; i++) {
-            this.currentLine.textContent += text[i];
+            this.hiddenInputElement.value += text[i];
+            this.updateInputDisplay();
             await this.sleep(speed);
         }
     }
@@ -82,7 +110,7 @@ class Terminal {
 
     handleInput(e) {
         if (!this.canInput) return;
-        this.currentLine.textContent = e.target.value;
+        this.updateInputDisplay();
     }
 
     async handleKeyDown(e) {
@@ -123,7 +151,7 @@ class Terminal {
                 if (this.historyIndex > 0) {
                     this.historyIndex--;
                     this.hiddenInputElement.value = this.history[this.historyIndex];
-                    this.currentLine.textContent = this.hiddenInputElement.value;
+                    this.updateInputDisplay();
                 }
                 break;
             case "ArrowDown":
@@ -131,11 +159,11 @@ class Terminal {
                 if (this.historyIndex < this.history.length - 1) {
                     this.historyIndex++;
                     this.hiddenInputElement.value = this.history[this.historyIndex];
-                    this.currentLine.textContent = this.hiddenInputElement.value;
+                    this.updateInputDisplay();
                 } else {
                     this.historyIndex = this.history.length;
                     this.hiddenInputElement.value = "";
-                    this.currentLine.textContent = "";
+                    this.updateInputDisplay();
                 }
                 break;
             case "Tab":
