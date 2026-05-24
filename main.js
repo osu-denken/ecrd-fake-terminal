@@ -1,3 +1,5 @@
+import commands from "./commands/index.js"
+
 class Terminal {
     constructor(cliElement, hiddenInputElement) {
         this.cliElement = cliElement; // ターミナル表示部の要素
@@ -9,16 +11,6 @@ class Terminal {
         this.historyIndex = -1;
         this.isInterrupted = false; // 中断フラグ
 
-        this.commands = {
-            "ls": this.ls.bind(this),
-            "cd": this.cd.bind(this),
-            "cat": this.cat.bind(this),
-            "help": this.help.bind(this),
-            "clear": this.clear.bind(this),
-            "pwd": this.pwd.bind(this),
-            "yes": this.yes.bind(this),
-        };
-
         this.init();
     }
 
@@ -28,6 +20,7 @@ class Terminal {
                 this.hiddenInputElement.focus();
             }
         });
+        
         this.hiddenInputElement.addEventListener('input', this.handleInput.bind(this));
         this.hiddenInputElement.addEventListener('keydown', this.handleKeyDown.bind(this));
         this.playInitAnimation();
@@ -37,7 +30,7 @@ class Terminal {
         this.canInput = false;
         try {
             this.createNewLine();
-            await new Promise(resolve => setTimeout(resolve, 500)); // 500ms待機
+            await this.sleep(500); // 500ms待機
 
             const initialCommands = [
                 "ls /var/www/html/",
@@ -50,7 +43,7 @@ class Terminal {
                 await this.type(command, 80);
                 this.currentLine.classList.remove("cursor");
                 await this.executeCommand(command);
-                await new Promise(resolve => setTimeout(resolve, 200)); // 200ms待機
+                await this.sleep(200); // 200ms待機
                 if (initialCommands.indexOf(command) < initialCommands.length - 1) {
                     this.createNewLine();
                 }
@@ -79,8 +72,12 @@ class Terminal {
     async type(text, speed) {
         for (let i = 0; i < text.length; i++) {
             this.currentLine.textContent += text[i];
-            await new Promise(resolve => setTimeout(resolve, speed));
+            await this.sleep(speed);
         }
+    }
+
+    sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
     }
 
     handleInput(e) {
@@ -148,10 +145,10 @@ class Terminal {
         const [command, ...args] = commandText.trim().split(" ");
         this.isInterrupted = false;
 
-        if (command in this.commands) {
-            await this.commands[command](args);
+        if (command in commands) {
+            await commands[command](this, args);
         } else if(command !== "") {
-            this.writeLine(`-bash: ${command}: command not found`);
+            this.writeLine(`-fash: ${command}: command not found`);
         }
     }
 
@@ -189,74 +186,9 @@ class Terminal {
             .replace(/"/g, "&quot;")
             .replace(/'/g, "&#039;");
     }
-
-    // --- Commands ---
-    async ls(args) {
-        const path = args[0] || this.currentDir;
-        if (path === '/var/www/html/' || path === '~/') {
-             this.writeHtml(`<a class="dir" href="/about/" target="_parent">about/</a>\t<a class="dir" href="/background/" target="_parent">background/</a>\t<a class="dir" href="/blog/" target="_parent">blog/</a>\t<a href="/denken-pub.asc" target="_parent">denken-pub.asc</a>\t<a href="/favicon.ico" target="_parent">favicon.ico</a>\t<a href="/icon.png" target="_parent">icon.png</a>\t<a href="./" target="_parent">index.html</a>\t<a href="./welcome.md" target="_parent">welcome.md</a>`);
-        } else {
-             this.writeLine(`ls: cannot access '${path}': No such file or directory`);
-        }
-    }
-
-    async cd(args) {
-        const path = args[0];
-        if (!path || path === '~') {
-            this.currentDir = "~";
-        } else {
-            this.currentDir = path;
-        }
-    }
-
-    async cat(args) {
-        const path = args[0];
-        if (!path) {
-            this.writeLine("cat: missing operand");
-            return;
-        }
-        const content = await this.getFile(path);
-        // const escapedContent = this.escapeHtml(content);
-        content.split('\n').forEach(line => this.writeLine(line));
-    }
-
-    async pwd() {
-        this.writeLine(this.currentDir);
-    }
-
-    async yes(args) {
-        const text = args.join(' ') || 'y';
-        return new Promise(resolve => {
-            const printYes = () => {
-                if (this.isInterrupted) {
-                    resolve();
-                    return;
-                }
-                this.writeLine(text);
-                window.scrollTo(0, document.body.scrollHeight);
-                setTimeout(printYes, 10);
-            };
-            printYes();
-        });
-    }
-
-    async help() {
-        const helpLines = [
-            "ecrd-fake-terminal, version 25.12-release",
-            "These shell commands are defined internally. Type `help' to see this list.",
-            "",
-            " ls [path]      - List files",
-            " cd [path]      - Change directory",
-            " cat [file]     - Display contents of a file",
-            " pwd            - Print working directory",
-            " yes [string]   - Output a string repeatedly",
-            " help           - Show this help message",
-            " clear          - Clear the terminal",
-        ];
-        helpLines.forEach(line => this.writeLine(line));
-    }
-    
-    async clear() {
-        this.cliElement.innerHTML = "";
-    }
 }
+
+const terminal = new Terminal(
+    document.querySelector('.cli'),
+    document.querySelector('#terminal-input')
+);
